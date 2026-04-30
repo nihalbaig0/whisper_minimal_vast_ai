@@ -1,10 +1,4 @@
-# Install numpy first with compatible version
-numpy>=1.23.0,<2.0.0
-
-# Core dependencies
 fastapi
 uvicorn[standard]
 python-multipart
-
-# Whisper and audio processing
-openai-whisper
+faster-whisper>=1.0.3

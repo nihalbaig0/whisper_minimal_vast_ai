@@ -84,8 +84,8 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python test_api.py <API_URL> [audio_file.wav]")
         print("\nExample:")
-        print("  python test_api.py http://153.213.11.44:58583")
-        print("  python test_api.py http://153.213.11.44:58583 test_audio.wav")
+        print(f"  python {sys.argv[0]} http://localhost:8000")
+        print(f"  python {sys.argv[0]} http://localhost:8000 test_audio.wav")
         sys.exit(1)
     
     base_url = sys.argv[1].rstrip('/')

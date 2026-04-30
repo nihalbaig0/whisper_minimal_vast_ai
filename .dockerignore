@@ -22,4 +22,3 @@ ENV/
 *.m4a
 README.md
 test_api.py
-docker-compose.yml
