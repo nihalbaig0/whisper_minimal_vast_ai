@@ -85,11 +85,20 @@ Health check: **http://localhost:8000/health** (shows device, compute type, and 
 
 ## Traefik + HTTPS
 
-Same layout as [traefik_template/docker-compose.traefik.yml](traefik_template/docker-compose.traefik.yml) and [traefik_template/docker-compose.yml](traefik_template/docker-compose.yml): **Traefik v2.3**, Let’s Encrypt **TLS challenge**, HTTP→HTTPS redirect, dashboard + API behind **HTTP Basic auth** (`USERNAME` / `HASHED_PASSWORD` in `.env`). The app service is **`whisper`**, internal port **8000**, GPU via `deploy.resources.reservations.devices`. See [Traefik Readme.md](Traefik%20Readme.md) for background.
+Same layout as [traefik_template/docker-compose.traefik.yml](traefik_template/docker-compose.traefik.yml) and [traefik_template/docker-compose.yml](traefik_template/docker-compose.yml): **Traefik v2.3**, Let’s Encrypt **DNS-01** via **Cloudflare** (no inbound `:443` required for ACME), HTTP→HTTPS redirect, dashboard + API behind **HTTP Basic auth** (`USERNAME` / `HASHED_PASSWORD` in `.env`). The app service is **`whisper`**, internal port **8000**, GPU via `deploy.resources.reservations.devices`. See [Traefik Readme.md](Traefik%20Readme.md) and [Traefik ACME DNS / Cloudflare](https://doc.traefik.io/traefik/https/acme/#cloudflare).
+
+### Cloudflare API token (DNS-01)
+
+1. In [Cloudflare Dashboard](https://dash.cloudflare.com) → **My Profile** → **API Tokens** → **Create Token**.
+2. Use **Edit zone DNS** or a custom token with **Zone → DNS → Edit** and **Zone → Zone → Read**, scoped to your **zone**.
+3. Copy the token into `.env` as **`CF_DNS_API_TOKEN`** (shown once).
+
+Your domain’s DNS must be **on Cloudflare** for this API to create `_acme-challenge` TXT records. Keep **A**/**AAAA** records for `WHISPER_HOST` and `TRAEFIK_HOST` pointing at your server (or tunnel) as usual.
+
+### Deploy
 
 1. Create the shared network: `docker network create traefik-public`
-2. Copy [.env.example](.env.example) to `.env` and set **`WHISPER_HOST`** (API hostname) and **`TRAEFIK_HOST`** (dashboard hostname). Point DNS **A** records for those names to your server.
-3. In `.env`, set **`EMAIL`** (Let’s Encrypt), **`USERNAME`**, and **`HASHED_PASSWORD`** (APR1 hash):
+2. Copy [.env.example](.env.example) to `.env` and set **`WHISPER_HOST`**, **`TRAEFIK_HOST`**, **`CF_DNS_API_TOKEN`**, **`EMAIL`**, **`USERNAME`**, **`HASHED_PASSWORD`** (APR1 hash):
 
    ```bash
    export USERNAME=admin
@@ -97,9 +106,7 @@ Same layout as [traefik_template/docker-compose.traefik.yml](traefik_template/do
    export HASHED_PASSWORD=$(openssl passwd -apr1 $PASSWORD)
    ```
 
-   Put `EMAIL`, `USERNAME`, and `HASHED_PASSWORD` into `.env`.
-
-4. Start Traefik, then the app (from repo root):
+3. Start Traefik, then the app (from repo root):
 
    ```bash
    docker compose -f docker-compose.traefik.yml up -d
@@ -108,6 +115,8 @@ Same layout as [traefik_template/docker-compose.traefik.yml](traefik_template/do
 
    Optional extra replicas (same labels → Traefik load balancing):  
    `docker compose -f docker-compose.yml up -d --scale whisper=3`
+
+**Note:** DNS-01 fixes **certificate issuance** without public **:443** on your hostname (e.g. [vast.ai](https://docs.vast.ai/documentation/instances/connect/networking) port mapping). Clients must still reach your service (correct **A** record, `https://IP:port`, or a tunnel/proxy).
 
 ### GPU Docker troubleshooting
 

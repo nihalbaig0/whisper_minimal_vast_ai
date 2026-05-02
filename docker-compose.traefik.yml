@@ -9,6 +9,9 @@ services:
       # Listen on port 443, default for HTTPS
       - 443:443
     restart: always
+    environment:
+      # Cloudflare DNS API for Let's Encrypt DNS-01 (https://doc.traefik.io/traefik/https/acme/#cloudflare)
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN:?set CF_DNS_API_TOKEN in .env}
     labels:
       # Enable Traefik for this service, to make it available in the public network
       - traefik.enable=true
@@ -55,8 +58,10 @@ services:
       - --certificatesresolvers.le.acme.email=${EMAIL?Variable not set}
       # Store the Let's Encrypt certificates in the mounted volume
       - --certificatesresolvers.le.acme.storage=/certificates/acme.json
-      # Use the TLS Challenge for Let's Encrypt
-      - --certificatesresolvers.le.acme.tlschallenge=true
+      # DNS-01 via Cloudflare (works when public :443 TLS-ALPN challenge is unreachable, e.g. vast.ai port mapping)
+      - --certificatesresolvers.le.acme.dnschallenge=true
+      - --certificatesresolvers.le.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.le.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
       # Enable the access log, with HTTP requests
       - --accesslog
       # Enable the Traefik log, for configurations and errors
